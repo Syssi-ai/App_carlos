@@ -226,15 +226,22 @@ let state = {
 
 /* ---------- Helpers stockage ---------- */
 async function safeGet(key, shared){
-  try{ const r = await window.storage.get(key, shared); return r ? r.value : null; }
+  try{ return localStorage.getItem(key); }
   catch(e){ return null; }
 }
 async function safeSet(key, value, shared){
-  try{ return await window.storage.set(key, value, shared); }
+  try{ localStorage.setItem(key, value); return true; }
   catch(e){ console.error("storage set error", e); return null; }
 }
 async function safeList(prefix, shared){
-  try{ const r = await window.storage.list(prefix, shared); return r ? r.keys : []; }
+  try{ 
+    const keys = [];
+    for(let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(key && key.startsWith(prefix)) keys.push(key);
+    }
+    return keys;
+  }
   catch(e){ return []; }
 }
 function j(v){ return JSON.stringify(v); }
@@ -242,30 +249,30 @@ function parse(v, fallback){ try{ return JSON.parse(v); }catch(e){ return fallba
 
 /* ---------- Chargement des données ---------- */
 async function loadUsers(){
-  const keys = await safeList("user:", true);
+  const keys = await safeList("user:");
   const users = [];
   for(const k of keys){
-    const v = await safeGet(k, true);
+    const v = await safeGet(k);
     if(v) users.push(parse(v, null));
   }
   state.users = users.filter(Boolean);
 }
 async function loadSlots(){
-  const v = await safeGet("slots", true);
+  const v = await safeGet("slots");
   state.slots = v ? parse(v, []) : [];
 }
 async function loadNotifs(email){
   if(!email){ state.notifs = []; return; }
-  const v = await safeGet("notif:"+email, true);
+  const v = await safeGet("notif:"+email);
   state.notifs = v ? parse(v, []) : [];
 }
-async function saveSlots(){ await safeSet("slots", j(state.slots), true); }
-async function saveUser(u){ await safeSet("user:"+u.email, j(u), true); }
+async function saveSlots(){ await safeSet("slots", j(state.slots)); }
+async function saveUser(u){ await safeSet("user:"+u.email, j(u)); }
 async function pushNotif(email, message){
-  const v = await safeGet("notif:"+email, true);
+  const v = await safeGet("notif:"+email);
   const list = v ? parse(v, []) : [];
   list.unshift({ id: "n"+Date.now()+Math.random().toString(36).slice(2,6), message, date: new Date().toISOString(), lu:false });
-  await safeSet("notif:"+email, j(list), true);
+  await safeSet("notif:"+email, j(list));
 }
 async function loadAll(){
   await loadUsers();
@@ -573,7 +580,7 @@ function bindShellEvents(){
   document.getElementById("markAllRead").onclick = async (e)=>{
     e.stopPropagation();
     state.notifs.forEach(n=>n.lu=true);
-    await safeSet("notif:"+state.currentUser.email, j(state.notifs), true);
+    await safeSet("notif:"+state.currentUser.email, j(state.notifs));
     render();
   };
   document.querySelectorAll(".nav-item").forEach(b=>{
