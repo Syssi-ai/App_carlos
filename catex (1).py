@@ -204,7 +204,7 @@
 <script>
 /* =========================================================
    CATEX — prototype de prise de rendez-vous (style Doctolib)
-   Stockage : window.storage (persistant, partagé = true)
+   Stockage : localStorage (persistant dans le navigateur)
    ========================================================= */
 
 const GERANT_CODE = "CATEX2026GERANT"; // code d'accès pour créer un compte gérant
@@ -592,7 +592,7 @@ function bindShellEvents(){
     if(panel && state.bellOpen && !panel.contains(e.target) && e.target!==btn){
       state.bellOpen = false; render();
     }
-  }, { once:true });
+  });
 
   bindSectionEvents();
 }
